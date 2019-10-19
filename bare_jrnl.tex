@@ -29,7 +29,7 @@ These instructions give you guidelines for preparing papers for IEEE Signal Proc
 \end{abstract}
 
 \begin{IEEEkeywords}
-Enter key words or phrases in alphabetical order, separated by commas. For a list of suggested keywords, send a blank e-mail to keywords@ieee.org or visit \url{http://www.ieee.org/organizations/pubs/ani_prod/keywrd98.txt}
+Feature aggregation, real-time, salient object detection, edge information.
 \end{IEEEkeywords}
 
 
@@ -41,31 +41,38 @@ Enter key words or phrases in alphabetical order, separated by commas. For a lis
 
 \IEEEPARstart{T}{he} goal of salient object detection (SOD) is to identify the most visually distinctive objects in an image. As a fundamental task, a good SOD method should be both fast and accurate. Then it can be applied in a broad range of vision and image processing areas, such as visual tracking \cite{DBLP:journals/pami/MahadevanV13,DBLP:conf/icml/HongYKH15}, image retrieval \cite{DBLP:conf/cvpr/HeFLCLCC12}, and person re-identification \cite{DBLP:conf/cvpr/ZhaoOW13}. Although numerous valuable models have been proposed, it is still difficult for traditional methods to locate salient object accurately especially in some complicated scenarios because of lacking high-level semantic information. 
 
-Recently, convolutional neural networks (CNNs) have successfully broken the limits of traditional handcrafted features, and greatly promote the development of SOD models. 
+Recently, with the capability of efficiently extracting high-level semantic information, convolutional neural networks (CNNs) have successfully broken the limits of traditional handcrafted features, and greatly promote the development of SOD models. These CNN based methods\cite{DBLP:conf/iccv/ZhangWLWY17,DBLP:conf/cvpr/LeeTK16} mainly focus on utilizing high-level features extracted from last convolutional layers, which are better at positioning the exact places of salient objects. However, at the same time, they ignore low-level visual information such as spatial coherence, leading to suboptimal results with coarse and blurry object boundaries.
+Subsequent methods \cite{DBLP:conf/cvpr/LiuH16,DBLP:conf/iccv/ZhangWLWR17,DBLP:journals/tip/ZhangLLS19,DBLP:journals/pami/HouCHBTT19} solve the aforementioned problems by introducing U-NET \cite{DBLP:conf/miccai/RonnebergerFB15} into SOD to construct enriched feature maps, progressively refining the high-level features with the local information in a recursive way \cite{DBLP:conf/eccv/WangWLZR16,DBLP:conf/cvpr/ZhangWQLW18}, adding extra structure information like the boundary term \cite{DBLP:journals/spl/ZhugeYZL18,DBLP:journals/spl/GuanWQZL19,DBLP:conf/cvpr/LiuHCFJ19}, or using post-processing (CRF) \cite{DBLP:conf/cvpr/LiY16,DBLP:journals/pami/HouCHBTT19} to preserve the object boundaries. While these methods have achieved excellent SOD accuracy, the main inconvenience with these approaches is their low inference speed, which drag them on wide-ranging applications.
 
-With the increase of the network receptive ﬁeld, the positioning of salient objects becomes more and more accurate.
+In order to achieve real-time SOD, Liu {\em et al.} \cite{DBLP:conf/cvpr/LiuHCFJ19} perform new spatial pyramid pooling module to make computation efficient. However, implementing spatial pyramid module on heavy backbone network is still time-consuming. Li {\em et al.} \cite{DBLP:conf/icassp/LiSTH19} use a lightweight backbone network to fast extract high-level semantic information and a parallel branch with shallow network for structural information as supplementary. Nevertheless, the mutual independence between branches limits the model learning ability. Instead of ‘borrowing’ information from other branches, feature reuse is a more economical thought. This motivates us to find a lightweight model to incorporate multi-level context into encoded features.
 
-These CNNbased methods have greatly refreshed the leaderboards on almost all the widely used benchmarks and are gradually replacing conventional salient object detection methods because of the efﬁciency as well as high performance.
-
-their capability of extracting both high-level semantic information and low-level
-while deeper stages contain more high-level semantic knowledge and are better at locating the exact places of salient objects.
-
-Nonetheless, existing models mainly focus on utilizing high-level features extracted from last convolutional layers.
-
-Traditional methods [11, 25, 14, 31, 2, 12, 41, 3] mostly rely on hand-crafted features to capture local details and global context separately or simultaneously, but the lack of high-level semantic information restricts their ability to detect the integral salient objects in complex scenes.
-
-Recently, convolutional neural networks (CNNs) have successfully broken the limits of traditional handcrafted features, and greatly promote the development of SOD models. 
+In this letter, we propose a novel cross-level feature aggregation strategy, which can enhance the model learning capacity and increase the receptive field simultaneously. 
+First, we replicate the lightweight backbone \cite{DBLP:conf/cvpr/Chollet17} and reuse high-level features extracted from the previous backbone to the input of the next backbone to bridge gap between semantic information and structure details. We call this process network-level aggregation. 
+Second, we combine features of different phases in the processing path including 'coarse' part and 'fine' part of the network architecture to enhance feature representation ability. This process is called phase-level aggregation.
+Then, to better preserve object boundaries, we leverage the salient edge features as complement of the salient object features to accurately locate objects. After these modules, a slight decoder composed of convolution and bilinear upsampling operations is adopted to combine the outputs of each level. To alleviate the precision loss in high-dimension features when the whole network structure depth grows, we use multi-level salient supervision in network training which can boost the gradient backpropagation flow. As shown in Fig. 1, compared with other methods, our novel architecture (FAST) achieves a better balance between speed and accuracy which can generate impressive SOD results with a far faster speed (186 fps).
 
 
-especially after the emerging of Fully Convolutional Neural Networks (FCNs) [34].
-Although visual saliency has achieved state-of-the-art performance through the use of deep convolutional neural networks
+\section{THE PROPOSED METHOD}
+The structure of the proposed method is illustrated in Fig. 2. The novelty of our work mainly manifests in the following several aspects: 
+First, to achieve real-time SOD, we propose a novel cross-level feature aggregation strategy to reuse features of lightweight backbone network in both network-level and phase-level. Second, to better preserve object boundaries, we explore the complementary between salient object information and edge information within a lightweight architecture. Through the proposed  novel architecture, extensive experiments show that our method achieves the state-of-the-art performance both in speed and accuracy. In this section, we elaborate on the effectiveness of the key components.
+\subsection{Cross-level Feature Aggregation}
+We focus on making the fusion of different depth features in networks. Our aggregation strategy is composed of network-level aggregate and phase-level aggregate methods.
+\subsubsection{Network-level Aggregation:} The goal of network-level aggregation is reusing high-level features to bridge gap between semantic information and structure details. We stack lightweight backbones by feeding the output of the previous backbone to the next to implement network-level aggregation architecture.  From another perspective, network-level aggregation can be seen as a feature refinement process. We define one backbone process as 
+$y=\Psi(x)$. Then we feed the output of encoder $\Psi_{n}$ into next encoder $\Psi_{n+1}$, so the whole network-level aggregation can be formulated as: $Y=\Psi_{n}(\Psi_{n-1}(\dots\Psi_{1}(X)))$.
+Network-level aggregation allows these high-level features to be processed again to further evaluate and reassess higher order spatial relationships.
+\subsubsection{Phase-level Aggregation:}
+As the depth of network grows, only reusing features in a single path could cause  spatial details losing. So the phase-level aggregation is proposed to combine features through encoding period to enhance feature representation ability.  
+We make the fusion of different phases in the same depth of backbones. In detail, the output of a certain phase in the previous backbone is contributed to the input of the next backbone in the corresponding phase position. We define a phase process as $\psi_{n}^{i}$ in a backbone $\Psi_{n}(x)$. The corresponding phase of previous backbone network is then defined as $\psi_{n-1}^{i}$. $i$ is the index of the phase and $n$ is the index of backbone network.
+Phase-level aggregation can be formulated as:
+$x_{n}^{i}=cat(x_{n-1}^{i},x_{n}^{i-1})+\psi(cat(x_{n-1}^{i},x_{n}^{i-1}))$.
+Which means the input of $i$th phase in $n$th backbone is given by fusing the $i$th phase output in $(n-1)$th network with the $(i-1)$th phase output in $n$th network. 
+Since all backbones have the similar structure, $x_{n-1}^{i}$ has the same  resolution as its corresponding phase $x_{n}^{i-1}$. So phase-level feature fusion
+can be produced by concatenation operation and the the $i$th phase learns a residual representation of $cat(x_{n-1}^{i},x_{n}^{i-1})$ to generate the multi-phase context. 
 
-document is a template for \LaTeX. If you are reading a paper or PDF version of this document, please download the electronic file, trans\_jour.tex, from the IEEE Web site at \url{http://www.ieee.org/authortools/trans_jour.tex} so you can use it to prepare your manuscript. If you would prefer to use LaTeX, download IEEE's LaTeX style and sample files from the same Web page. You can also explore using the Overleaf editor at {https://www.overleaf.com/blog/278-how-to-use-overleaf-with-ieee-collabratec-your-quick-guide-to-getting-started\#.xsVp6tpPkrKM9}
+we propose stage-level method (Figure 2(d)) to deliver low-level features and spatial information to semantic understanding.
 
-If your paper is intended for a conference, please contact your conference editor concerning acceptable word processor formats for your particular conference.  
-
-
-\section{Guidelines For Manuscript Preparation}
+Our sub-stage aggregation is proposed to combine features through encoding period. reuse high-level features extracted from the previous backbone to the input of the next backbone to bridge gap between semantic information and structure details.
+pro- posed Deep Feature Aggregation Network aims to exploit features combined from both network-level and stage-level.
 
 
 The IEEEtran\_HOWTO.pdf is the complete guide of \LaTeX\ for manuscript preparation included with this stuff. 
